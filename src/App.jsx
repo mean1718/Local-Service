@@ -6,13 +6,12 @@ import Services from './pages/Services.jsx';
 import ServiceDetail from './pages/ServiceDetail.jsx';
 import PostService from './pages/PostService.jsx';
 import ReportIssue from './pages/ReportIssue.jsx';
+import Auth from './pages/Auth.jsx';
 import servicesData from './data/services.js';
 import './index.css';
 import BottomNav from './components/BottomNav.jsx';
 
-// Root app component: holds global state and routes.
 function App() {
-  // Services list is persisted in localStorage to feel "real" between refreshes.
   const [services, setServices] = useState(() => {
     try {
       const stored = localStorage.getItem("lsf_services");
@@ -25,16 +24,22 @@ function App() {
     }
     return servicesData;
   });
-  // Current location controls default filtering across the app.
+
   const [currentLocation, setCurrentLocation] = useState("Phnom Penh");
 
-  // Add a new service to the list (used by PostService form).
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const storedUser = localStorage.getItem("lsf_current_user");
+      return storedUser ? JSON.parse(storedUser) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const addService = (newService) => {
-    // Simple ID strategy: append after current list.
     setServices([...services, { ...newService, id: services.length + 1 }]);
   };
 
-  // Persist services to localStorage whenever they change.
   useEffect(() => {
     try {
       localStorage.setItem("lsf_services", JSON.stringify(services));
@@ -43,24 +48,27 @@ function App() {
     }
   }, [services]);
 
-    return (
-      <Router
-        future={{
-          v7_startTransition: true,
-          v7_relativeSplatPath: true
-        }}
-      >
-        <div className="min-h-screen bg-zinc-100 text-zinc-900 pb-20 sm:pb-24">
-          {/* Top header with current location picker */}
-          <Navbar
-            currentLocation={currentLocation}
-            onChangeLocation={setCurrentLocation}
-          />
+  return (
+    <Router
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true
+      }}
+    >
+      <div className="min-h-screen bg-zinc-100 text-zinc-900 pb-20 sm:pb-24">
+        <Navbar
+          currentLocation={currentLocation}
+          onChangeLocation={setCurrentLocation}
+          currentUser={currentUser}
+        />
         <main className="px-4 sm:px-6 pb-6">
-          {/* App routes: each page gets the data it needs */}
           <Routes>
             <Route
               path="/"
+              element={<Auth onAuthSuccess={(user) => setCurrentUser(user)} />}
+            />
+            <Route
+              path="/home"
               element={<Home services={services} currentLocation={currentLocation} />}
             />
             <Route
@@ -70,6 +78,10 @@ function App() {
             <Route path="/services/:id" element={<ServiceDetail services={services} />} />
             <Route path="/post-service" element={<PostService onAddService={addService} />} />
             <Route path="/report" element={<ReportIssue />} />
+            <Route
+              path="/auth"
+              element={<Auth onAuthSuccess={(user) => setCurrentUser(user)} />}
+            />
           </Routes>
         </main>
         <BottomNav />
